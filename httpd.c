@@ -72,8 +72,10 @@ int cli_accept(int s) {
     return c;
 }
 
-/* returns 0 on error, or httpreq struct */
-httpreq *parse_http(char *str) {
+/*
+ * returns 0 on error, or httpreq struct 
+ * */
+httpreq *http_parse(char *str) {
     httpreq *req;
     char *p;
     
@@ -105,10 +107,44 @@ httpreq *parse_http(char *str) {
     return req;
 }
 
+/*
+ * return 0 on error, or return the data 
+ * */
+char *cli_read(int c) {
+    static char buf[512];
+    memset(buf, 0, 512);
+
+    if (read(c, buf, 511) < 0) {
+        error = "read() error\n";
+        return 0;
+    }
+
+    return buf;
+}
+
 
 void cli_conn(int s, int c) {
-    // TODO
-   return; 
+    httpreq *req;
+    char *p;
+
+    p = cli_read(c);
+    if (!p) {
+        fprintf(stderr, "%s\n", error);
+        close(c);
+        return;
+    }
+
+    req = http_parse(p);
+    if (!req) {
+        fprintf(stderr, "%s\n", error);
+        close(c);
+        return;
+    }
+
+    printf("'%s'\n'%s'\n", req->method, req->url);
+    free(req);
+    close(c);
+    return;
 }
 
 int main(int argc, char **argv) {
