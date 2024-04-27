@@ -9,6 +9,15 @@
 
 #define LISTENADDR "127.0.0.1"
 
+/* structs */
+struct sHttpRequest {
+    char method[8];
+    char url[128];
+};
+
+typedef struct sHttpRequest httpreq;
+ 
+
 /* global */
 char *error;
 
@@ -63,6 +72,40 @@ int cli_accept(int s) {
     return c;
 }
 
+/* returns 0 on error, or httpreq struct */
+httpreq *parse_http(char *str) {
+    httpreq *req;
+    char *p;
+    
+    req = malloc(sizeof(httpreq));
+
+    for (p = str; *p && *p != ' '; ++p);
+    if (*p == ' ') {
+        *p = 0; // change to nullbyte
+    }
+    else {
+        error = "parse_http() NOSPACE error\n";
+        free(req);
+        return 0;
+    }
+    strncpy(req->method, str, 7); // 8 - nullbyte
+
+    for (str = ++p; *p && *p != ' '; ++p);
+    if (*p == ' ') {
+        *p = 0; // change to nullbyte
+    }
+    else {
+        error = "parse_http() 2ND NOSPACE error\n";
+        free(req);
+        return 0;
+    }
+    strncpy(req->url, str, 127); // 128 - nullbyte
+
+
+    return req;
+}
+
+
 void cli_conn(int s, int c) {
     // TODO
    return; 
@@ -71,7 +114,7 @@ void cli_conn(int s, int c) {
 int main(int argc, char **argv) {
     int s, c;
     char *port;
-    
+
     if (argc < 2) {
         fprintf(stderr, "Usage: %s <listening port>\n", argv[0]);
         return -1; 
