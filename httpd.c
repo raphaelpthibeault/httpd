@@ -122,10 +122,46 @@ char *cli_read(int c) {
     return buf;
 }
 
+void http_header(int c, int code) {
+    char buf[512];
+    int n;
+    
+    memset(buf, 0, 512);
+    snprintf(buf, 511, 
+             "HTTP/1.0 %d OK\n"
+             "Server: httpd.c\n"
+             "Cache-Control: no-store, no-cache, max-age=0, private\n"
+             "Content-Language: en\n"
+             "Expires: -1\n"
+             "X-Frame-Options: SAMEORIGIN\n"
+             , code);
+    
+    n = strlen(buf);
+    write(c, buf, n);
+}
+
+void http_response(int c, char *content_type, char *data) {
+    char buf[512];
+    int n;
+    
+    n = strlen(data);
+    memset(buf, 0, 512);
+    snprintf(buf, 511, 
+             "Content-Type: %s\n"
+             "Content-Length: %d\n"
+             "\n%s\n"
+            , content_type, n, data);
+    
+    n = strlen(buf);
+    write(c, buf, n);
+}
+
 
 void cli_conn(int s, int c) {
     httpreq *req;
     char *p;
+    char *res;
+
 
     p = cli_read(c);
     if (!p) {
@@ -140,8 +176,17 @@ void cli_conn(int s, int c) {
         close(c);
         return;
     }
+    
+    if (!strcmp(req->method, "GET") && (!strcmp(req->url, "/app/webpage"))) {
+        res = "<html>Hello, world!</html>\n";
+        http_header(c, 200);
+        http_response(c, "text/html", res);
+    } else {
+        res = "File not found!\n";
+        http_header(c, 404);
+        http_response(c, "text/plain", res);
+    }
 
-    printf("'%s'\n'%s'\n", req->method, req->url);
     free(req);
     close(c);
     return;
