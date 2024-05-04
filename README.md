@@ -1,0 +1,1 @@
+A simple HTTP server daemon written in C. Supports GETs of files.
